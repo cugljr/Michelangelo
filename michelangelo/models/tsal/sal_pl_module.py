@@ -25,6 +25,7 @@ class ShapeAsLatentPLModule(pl.LightningModule):
                  module_cfg,
                  loss_cfg,
                  optimizer_cfg: Optional[DictConfig] = None,
+                 learning_rate: float = 1e-4,
                  ckpt_path: Optional[str] = None,
                  ignore_keys: Union[Tuple[str], List[str]] = ()):
 
@@ -35,6 +36,7 @@ class ShapeAsLatentPLModule(pl.LightningModule):
         self.loss = instantiate_from_config(loss_cfg)
 
         self.optimizer_cfg = optimizer_cfg
+        self.learning_rate = learning_rate
 
         if ckpt_path is not None:
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
@@ -112,6 +114,16 @@ class ShapeAsLatentPLModule(pl.LightningModule):
 
         latents, center_pos, posterior = self.sal.encode(
             pc=pc, feats=feats, sample_posterior=sample_posterior
+        )
+
+        return latents
+
+    def encode_latents(self, surface: torch.FloatTensor):
+        pc = surface[..., 0:3]
+        feats = surface[..., 3:6]
+
+        latents, _, _ = self.sal.encode(
+            pc=pc, feats=feats, sample_posterior=False
         )
 
         return latents
