@@ -125,3 +125,11 @@ trainer:
   monitor: val/total_loss
   monitor_mode: min
   save_top_k: 3
+  wandb:
+    enabled: true
+    project: michelangelo-tallinn
+    entity: null
+    name: tallinn-shapevae-256
+    offline: false
+    tags: [tallinn, shapevae, buildings]
+    notes: Shape-only Michelangelo training on Tallinn building meshes

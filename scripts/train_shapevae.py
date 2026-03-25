@@ -2,9 +2,8 @@ import argparse
 from pathlib import Path
 
 import pytorch_lightning as pl
-from omegaconf import OmegaConf
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger, WandbLogger
 
 from michelangelo.utils.misc import get_config_from_file, instantiate_from_config
 
@@ -16,11 +15,26 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def build_loggers(log_dir: Path, experiment_name: str):
+def build_loggers(log_dir: Path, experiment_name: str, trainer_cfg):
     loggers = [
         CSVLogger(save_dir=str(log_dir), name=experiment_name),
         TensorBoardLogger(save_dir=str(log_dir), name=experiment_name),
     ]
+
+    wandb_cfg = trainer_cfg.get("wandb")
+    if wandb_cfg and wandb_cfg.get("enabled", False):
+        loggers.append(
+            WandbLogger(
+                project=wandb_cfg["project"],
+                entity=wandb_cfg.get("entity"),
+                name=wandb_cfg.get("name", experiment_name),
+                save_dir=str(log_dir),
+                offline=wandb_cfg.get("offline", False),
+                tags=wandb_cfg.get("tags"),
+                notes=wandb_cfg.get("notes"),
+            )
+        )
+
     return loggers
 
 
@@ -33,6 +47,9 @@ def main() -> None:
     model = instantiate_from_config(config.model)
     data = instantiate_from_config(config.data)
     trainer_cfg = config.trainer
+    wandb_cfg = trainer_cfg.get("wandb")
+    if wandb_cfg is not None:
+        wandb_cfg["config_path"] = args.config_path
 
     experiment_name = trainer_cfg.get("experiment_name", Path(args.config_path).stem)
     output_dir = Path(trainer_cfg.get("output_dir", "runs")) / experiment_name
@@ -56,7 +73,7 @@ def main() -> None:
 
     trainer = pl.Trainer(
         default_root_dir=str(output_dir),
-        logger=build_loggers(log_dir, experiment_name),
+        logger=build_loggers(log_dir, experiment_name, trainer_cfg),
         callbacks=callbacks,
         accelerator=trainer_cfg.get("accelerator", "auto"),
         devices=trainer_cfg.get("devices", "auto"),
