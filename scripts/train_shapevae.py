@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger, WandbLogger
 
@@ -66,6 +67,7 @@ def main() -> None:
     config = get_config_from_file(args.config_path)
 
     pl.seed_everything(args.seed, workers=True)
+    torch.set_float32_matmul_precision("high")
 
     model = instantiate_from_config(config.model)
     data = instantiate_from_config(config.data)
