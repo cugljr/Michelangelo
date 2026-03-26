@@ -371,6 +371,10 @@ class Compose(object):
     def __call__(self, *args):
         for t in self.transforms:
             args = t(*args)
+            if not isinstance(args, tuple):
+                args = (args,)
+        if len(args) == 1:
+            return args[0]
         return args
 
     def __repr__(self):
