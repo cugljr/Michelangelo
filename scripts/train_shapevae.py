@@ -12,7 +12,30 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train Michelangelo shape VAE on Tallinn NPZ samples.")
     parser.add_argument("--config_path", type=str, required=True)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--accelerator",
+        type=str,
+        default=None,
+        help="Override trainer accelerator, e.g. gpu, cpu, auto.",
+    )
+    parser.add_argument(
+        "--devices",
+        type=str,
+        default=None,
+        help="Override trainer devices. Examples: 0, 1, 0,1, or auto.",
+    )
     return parser.parse_args()
+
+
+def parse_devices_arg(devices_arg: str):
+    value = devices_arg.strip()
+    if value.lower() == "auto":
+        return "auto"
+    if "," in value:
+        return [int(part.strip()) for part in value.split(",") if part.strip()]
+    if value.isdigit():
+        return [int(value)]
+    return value
 
 
 def build_loggers(log_dir: Path, experiment_name: str, trainer_cfg):
@@ -51,6 +74,9 @@ def main() -> None:
     if wandb_cfg is not None:
         wandb_cfg["config_path"] = args.config_path
 
+    accelerator = args.accelerator if args.accelerator is not None else trainer_cfg.get("accelerator", "auto")
+    devices = parse_devices_arg(args.devices) if args.devices is not None else trainer_cfg.get("devices", "auto")
+
     experiment_name = trainer_cfg.get("experiment_name", Path(args.config_path).stem)
     output_dir = Path(trainer_cfg.get("output_dir", "runs")) / experiment_name
     ckpt_dir = output_dir / "checkpoints"
@@ -75,8 +101,8 @@ def main() -> None:
         default_root_dir=str(output_dir),
         logger=build_loggers(log_dir, experiment_name, trainer_cfg),
         callbacks=callbacks,
-        accelerator=trainer_cfg.get("accelerator", "auto"),
-        devices=trainer_cfg.get("devices", "auto"),
+        accelerator=accelerator,
+        devices=devices,
         strategy=trainer_cfg.get("strategy", "auto"),
         precision=trainer_cfg.get("precision", 32),
         max_epochs=trainer_cfg.get("max_epochs", 100),
