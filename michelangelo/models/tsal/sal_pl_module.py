@@ -110,7 +110,7 @@ class ShapeAsLatentPLModule(pl.LightningModule):
     def encode(self, surface: torch.FloatTensor, sample_posterior=True):
 
         pc = surface[..., 0:3]
-        feats = surface[..., 3:6]
+        feats = surface[..., 3:]
 
         latents, center_pos, posterior = self.sal.encode(
             pc=pc, feats=feats, sample_posterior=sample_posterior
@@ -120,7 +120,7 @@ class ShapeAsLatentPLModule(pl.LightningModule):
 
     def encode_latents(self, surface: torch.FloatTensor):
         pc = surface[..., 0:3]
-        feats = surface[..., 3:6]
+        feats = surface[..., 3:]
 
         latents, _, _ = self.sal.encode(
             pc=pc, feats=feats, sample_posterior=False

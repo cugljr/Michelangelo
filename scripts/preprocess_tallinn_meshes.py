@@ -16,7 +16,7 @@ except ImportError:
 
 DEFAULT_MESH_DIR = Path("/home/kemove/devdata1/ljr/dataset/Tallinn/meshes")
 DEFAULT_SPLIT_DIR = Path("/home/kemove/devdata1/ljr/dataset/Tallinn/split")
-DEFAULT_OUTPUT_DIR = Path("/home/kemove/devdata1/ljr/dataset/Tallinn/michelangelo_npz")
+DEFAULT_OUTPUT_DIR = Path("/home/kemove/devdata1/ljr/dataset/Tallinn/michelangelo_npz_xyz")
 
 
 def parse_args() -> argparse.Namespace:
@@ -143,13 +143,8 @@ class OccupancyOracle:
 
 
 def sample_surface(mesh: trimesh.Trimesh, n_samples: int, rng: np.random.Generator) -> np.ndarray:
-    points, face_idx = trimesh.sample.sample_surface(mesh, n_samples)
-    face_normals = np.asarray(mesh.face_normals[face_idx], dtype=np.float32)
-    points = np.asarray(points, dtype=np.float32)
-
-    # Michelangelo can select either watertight normals or normals; duplicate the
-    # same face normals into both slots so the sample stays format-compatible.
-    return np.concatenate([points, face_normals, face_normals], axis=1).astype(np.float16)
+    points, _ = trimesh.sample.sample_surface(mesh, n_samples)
+    return np.asarray(points, dtype=np.float16)
 
 
 def sample_volume(
