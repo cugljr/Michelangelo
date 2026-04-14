@@ -73,7 +73,7 @@ class CheckpointFunction(torch.autograd.Function):
         grad_outputs = []
         grad_output_tensors = []
         for out, grad in zip(output_tensors, output_grads):
-            if out is not None and out.requires_grad:
+            if out is not None and out.requires_grad and grad is not None:
                 grad_output_tensors.append(out)
                 grad_outputs.append(grad)
         grad_params = [p for p in ctx.input_params if p.requires_grad]
