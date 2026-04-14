@@ -68,14 +68,27 @@ class CheckpointFunction(torch.autograd.Function):
             # Tensor storage in place, which is not allowed for detach()'d
             # Tensors.
             output_tensors = ctx.run_function(*shallow_copies)
+        if not isinstance(output_tensors, (tuple, list)):
+            output_tensors = (output_tensors,)
+        grad_outputs = []
+        grad_output_tensors = []
+        for out, grad in zip(output_tensors, output_grads):
+            if out is not None and out.requires_grad:
+                grad_output_tensors.append(out)
+                grad_outputs.append(grad)
+        grad_params = [p for p in ctx.input_params if p.requires_grad]
         grads = torch.autograd.grad(
-            output_tensors,
-            grad_input_tensors + ctx.input_params,
-            output_grads,
+            grad_output_tensors,
+            grad_input_tensors + grad_params,
+            grad_outputs,
             allow_unused=True,
         )
         tensor_input_grads = grads[:len(grad_input_tensors)]
-        param_grads = grads[len(grad_input_tensors):]
+        raw_param_grads = grads[len(grad_input_tensors):]
+        param_grad_iter = iter(raw_param_grads)
+        param_grads = []
+        for p in ctx.input_params:
+            param_grads.append(next(param_grad_iter) if p.requires_grad else None)
         tensor_iter = iter(tensor_input_grads)
         expanded_input_grads = []
         for x in ctx.input_tensors:
